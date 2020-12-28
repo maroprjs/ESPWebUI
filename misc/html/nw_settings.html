@@ -1,0 +1,188 @@
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <style type="text/css">
+  form  { display: table;      }
+  p     { display: table-row;  }
+  label { display: table-cell; }
+  input { display: table-cell; }
+  </style>  
+  <style>
+    a.button {
+    -webkit-appearance: button;
+    -moz-appearance: button;
+    appearance: button;
+    text-decoration: none;
+    color: initial;
+    padding: 3px 5px;
+    border: 1px solid #000;
+    background: #eee;
+}
+</style>
+  <h1>Network Settings General</h1>     
+  <hr>
+<form action="">
+<fieldset><legend>WiFi Configure</legend>    
+<table border="0"  cellspacing="0" cellpadding="3" style="width:400px" >
+<tr><td align="right">Device Name:</td><td><input type="text" id="devicename" name="devicename" value="give me a name!"></td></tr>
+<tr><td align="right">SSID:</td><td><input type="text" id="ssid" name="ssid" value=""><input type="button" class="btn" name="scanbut" id="scanbut" onclick="wifiScan()" value="Scan"></td></tr>
+<tr id="scan_tr" style="visibility:hidden;display:none;"><td align="right">Networks:</td><td><select name="scan" id="scan" value="" style="width: 165px; height: 22px;" onchange="fnSSIDSet()"></select></td></tr>
+<tr><td align="right">WiFi Password:</td><td><input type="password" id="password" name="password" value=""></td></tr>
+<tr><td align="right">DHCP:</td><td><select id="dhcp" name="dhcp" value="1" onchange="fnDHCPSet()">                    
+										<option value="1">Enabled</option>
+										<option value="0">Disable</option>
+									</select>
+</td></tr>           
+<tr id="static_ip" style="visibility:hidden;display:none;"><td align="right">IP:     </td><td><input type="text" id="ip_0" name="ip_0" size="3">.<input type="text" id="ip_1" name="ip_1" size="3">.<input type="text" id="ip_2" name="ip_2" size="3">.<input type="text" id="ip_3" name="ip_3" value="" size="3"></td></tr>
+<tr id="static_nm" style="visibility:hidden;display:none;"><td align="right">Netmask:</td><td><input type="text" id="nm_0" name="nm_0" size="3">.<input type="text" id="nm_1" name="nm_1" size="3">.<input type="text" id="nm_2" name="nm_2" size="3">.<input type="text" id="nm_3" name="nm_3" size="3"></td></tr>
+<tr id="static_gw" style="visibility:hidden;display:none;"><td align="right">Gateway:</td><td><input type="text" id="gw_0" name="gw_0" size="3">.<input type="text" id="gw_1" name="gw_1" size="3">.<input type="text" id="gw_2" name="gw_2" size="3">.<input type="text" id="gw_3" name="gw_3" size="3"></td></tr>
+<tr><td align="right">Wifi Mode:</td><td><select id="SoftAP" name="SoftAP" value="1">
+                        <option value="1">Wifi Station</option>
+						<option value="2">Wifi AP</option>
+						<option value="3">Wifi AP and Station</option>
+						<!--option value="0">Wifi Off</option-->
+                </select></td></tr> 
+</table>
+</fieldset>    
+     <br>  
+      <input type="button" id="savebut" name="savebut" value="Save Settings" onclick="SendFormJson()" style="width: 300px; height: 50px;" />&nbsp&nbsp
+      <input action="action" type="button" value="Back" onclick="history.go(-1);" style="width: 100px; height: 50px;" />&nbsp&nbsp
+	  <br><br><a href="./restartesp"  name="restart" id="restart" style="width: 70px; height: 20px;display:none;" class="button"  align="center" >Restart</a> 
+ 
+
+</form>
+
+<script>
+var xmlhttp = new XMLHttpRequest();
+var url = "/jsonload?f=network.json";
+
+xmlhttp.onreadystatechange = function() {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+        var myArr = JSON.parse(xmlhttp.responseText);
+        myFunction(myArr);
+    }
+};
+xmlhttp.open("GET", url, true);
+xmlhttp.send();
+
+function myFunction(jsonData) {  //process the json from the ESP
+	console.log(jsonData);
+	var jsonDataKeys = Object.keys(jsonData);
+	for(var i=0; i<jsonDataKeys.length; i++){
+		var fields = document.getElementsByName(jsonDataKeys[i]);                        
+		for (var f=0; f<fields.length; f++){
+			var field=fields[f];
+			if (field.getAttribute('type')=='checkbox')                 
+                              {if (field.getAttribute('value')==jsonData[jsonDataKeys[i]])  field.setAttribute('checked','checked');                                   
+                              }     
+			else if (field.getAttribute('type')=='radio')                 
+                              {if (field.getAttribute('value')==jsonData[jsonDataKeys[i]])  field.setAttribute('checked','checked');                                         
+                               } 
+			else if (field.getAttribute('type')=='button')                 
+                              {  }//do nothing                                                                        
+			else {field.value =  jsonData[jsonDataKeys[i]];}
+		} //for fields loop
+	}//for loop
+} //function
+
+function fnDHCPSet() { 
+    var si=document.getElementById("static_ip"); 
+	var sn=document.getElementById("static_nm");
+	var sg=document.getElementById("static_gw");
+    if (document.getElementById("dhcp").value=="0")
+    {            	      
+        si.style.visibility='visible';
+        si.style.display='table-row';                    
+        sn.style.visibility='visible';
+        sn.style.display='table-row';                    
+        sg.style.visibility='visible';
+        sg.style.display='table-row';                    
+    }	
+    else {
+        si.style.display='none';
+        si.style.visibility='hidden';
+        sn.style.display='none';
+        sn.style.visibility='hidden';
+        sg.style.display='none';
+        sg.style.visibility='hidden';
+    } 
+}                            
+
+function fnSSIDSet() { document.getElementById("ssid").value=document.getElementById("scan").value; } ;
+
+function wifiScan() { 
+	var wifihttp = new XMLHttpRequest(); 
+	var wurl ="/availnets"; 
+	wifihttp.onreadystatechange = function() { 
+	  if (wifihttp.readyState == 4 && wifihttp.status == 200) { 
+	    var jsonList = JSON.parse(wifihttp.responseText);
+	    var listItems='"<option value="">' + 'Select...</option>'; //add temp line for onchange to fire. 
+	    for (var i = 0; i< jsonList.Networks.length; i++){ 
+  	    listItems+='"<option value="'+ jsonList.Networks[i].ssidname + '">' + jsonList.Networks[i].ssidname+'   ('+jsonList.Networks[i].qual+ '%)</option>'; } 
+  			document.getElementById("scan").innerHTML=listItems; 
+  			document.getElementById("scanbut").value='Scan'; 
+  			//document.getElementById("scan").style.visibility='visible' ; 
+	      document.getElementById("scan_tr").style.visibility='visible' ;
+	      document.getElementById("scan_tr").style.display='table-row';
+    };
+	}; 
+	wifihttp.open("GET", wurl, true); 
+	wifihttp.send(); 
+	document.getElementById("scanbut").value='wait'; }
+
+	
+
+</script>
+
+
+
+
+<script>
+function SendFormJson(){ 
+ var inputs=document.getElementsByTagName("*")
+ if (inputs['devicename'].value=="give me a name!" )
+ {
+    alert("Device Name cannot be blank!!")
+    exit;
+ } 
+ document.getElementById("restart").style.display = "block";
+ inputs['savebut'].value="Saved!...click on Restart when ready"; 
+ var data = {};
+ var field;
+ var i;
+    for (i=0; i<inputs.length; i++) 
+       {
+         field = inputs[i];                   
+         if (field.tagName == 'INPUT' || field.tagName == 'SELECT')
+         {
+          if (field.getAttribute('type') != undefined)                                  
+                {
+                  if (field.getAttribute('type')=='checkbox')                 
+                              { 
+                               if (field.checked)    
+                                      {data[field.name] = field.value;}                                   
+                              }     
+                   else if (field.getAttribute('type')=='radio')                 
+                              {
+                               if (field.checked)    
+                                      {data[field.name] = field.value;}                                   
+                              }      
+                   else if (field.getAttribute('type')=='button')                 
+                              {  }//do nothing                                          
+                   else {data[field.name] = field.value;}  //not checkbox          
+                }
+           else  {data[field.name] = field.value;}                          
+        }//not input or select so do nothing...                       
+       } //for loop
+var xhttp = new XMLHttpRequest();       
+xhttp.open("POST", "/jsonsave?f=network.json&js="+JSON.stringify(data), false);
+xhttp.setRequestHeader("Content-type","application/json");//"application/x-www-form-urlencoded");  //
+//xhttp.send("JSON=" + JSON.stringify(data));  
+console.log(JSON.stringify(data));
+xhttp.send(JSON.stringify(data));  
+alert("Please reboot device!");
+}
+</script>
+
+
+   
